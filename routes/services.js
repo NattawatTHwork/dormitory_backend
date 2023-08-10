@@ -13,7 +13,7 @@ router.get('/', jsonParser, checkUserAuthorization, (req, res, next) => {
                 res.json({ status: 'error', message: err });
                 return;
             }
-            res.json({ status: 'success', message: results });
+            res.json({ status: 'success', message: results[0] });
         }
     );
 });
@@ -21,7 +21,7 @@ router.get('/', jsonParser, checkUserAuthorization, (req, res, next) => {
 router.put('/', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
         'UPDATE services SET electricity_fee = ?, water_fee = ?, common_area_fee = ? WHERE service_id = ?',
-        [req.body.electricity_fee, req.body.water_fee, req.body.common_area_fee, req.body.service_id,],
+        [req.body.electricity_fee, req.body.water_fee, req.body.common_area_fee, req.body.service_id],
         (err, results, fields) => {
             if (err) {
                 res.json({ status: 'error', message: err });

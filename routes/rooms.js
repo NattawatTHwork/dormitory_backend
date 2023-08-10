@@ -5,9 +5,9 @@ var jsonParser = bodyParser.json();
 var connection = require('../database');
 const checkUserAuthorization = require('./checkUserAuthorization');
 
-router.get('/', jsonParser, checkUserAuthorization, (req, res, next) => {
+router.get('/room', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
-        'SELECT * FROM rooms',
+        'SELECT room_id, user_id, name_room, price, status FROM rooms',
         (err, results, fields) => {
             if (err) {
                 res.json({ status: 'error', message: err });
@@ -18,41 +18,65 @@ router.get('/', jsonParser, checkUserAuthorization, (req, res, next) => {
     );
 });
 
-router.get('/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+router.get('/room/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
-        'SELECT * FROM rooms WHERE room_id = ?',
+        'SELECT room_id, name_room, price, status FROM rooms WHERE room_id = ?',
         [req.params.id],
         (err, results, fields) => {
             if (err) {
                 res.json({ status: 'error', message: err });
                 return;
             }
-            if (results.length == 0) {
-                res.json({ status: 'nodata', message: 'No data' });
-            }
-            if (results[0].user_id == 0) {
-                res.json({ status: 'success', message: results[0] });
-            } else {
-                connection.execute(
-                    'SELECT * FROM rooms INNER JOIN users ON rooms.user_id = users.user_id WHERE room_id = ?',
-                    [req.params.id],
-                    (err, results, fields) => {
-                        if (err) {
-                            res.json({ status: 'error', message: err });
-                            return;
-                        }
-                        res.json({ status: 'success', message: results[0] });
-                    }
-                );
-            }
+            res.json({ status: 'success', message: results[0] });
         }
     );
 });
 
-router.post('/', jsonParser, checkUserAuthorization, (req, res, next) => {
+router.get('/room_user', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
-        'INSERT INTO rooms (name_room, price, status) VALUES (?, ?, ?)',
-        [req.body.name_room, req.body.price, req.body.status],
+        'SELECT room_id, rooms.user_id, name_room, price, username, first_name, last_name, role, rooms.status as room_status, users.status as user_status FROM rooms LEFT JOIN users ON rooms.user_id = users.user_id',
+        (err, results, fields) => {
+            if (err) {
+                res.json({ status: 'error', message: err });
+                return;
+            }
+            res.json({ status: 'success', message: results });
+        }
+    );
+});
+
+router.get('/room_user/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+    connection.execute(
+        'SELECT room_id, rooms.user_id, name_room, price, username, first_name, last_name, role, rooms.status as room_status, users.status as user_status FROM rooms LEFT JOIN users ON rooms.user_id = users.user_id WHERE room_id = ?',
+        [req.params.id],
+        (err, results, fields) => {
+            if (err) {
+                res.json({ status: 'error', message: err });
+                return;
+            }
+            res.json({ status: 'success', message: results[0] });
+        }
+    );
+});
+
+router.post('/create_room', jsonParser, checkUserAuthorization, (req, res, next) => {
+    connection.execute(
+        'INSERT INTO rooms (name_room, price) VALUES (?, ?)',
+        [req.body.name_room, req.body.price],
+        (err, results, fields) => {
+            if (err) {
+                res.json({ status: 'error', message: err });
+                return;
+            }
+            res.json({ status: 'success' });
+        }
+    );
+});
+
+router.put('/change_status/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+    connection.execute(
+        'UPDATE rooms SET status = ? WHERE room_id = ?',
+        [req.body.status, req.params.id],
         (err, results, fields) => {
             if (err) {
                 res.json({ status: 'error', message: err });
@@ -77,10 +101,10 @@ router.put('/manage_user/:id', jsonParser, checkUserAuthorization, (req, res, ne
     );
 });
 
-router.put('/update_room/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+router.put('/edit_room/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
-        'UPDATE rooms SET name_room = ?, price = ?, status = ? WHERE room_id = ?',
-        [req.body.name_room, req.body.price, req.body.status, req.params.id],
+        'UPDATE rooms SET name_room = ?, price = ? WHERE room_id = ?',
+        [req.body.name_room, req.body.price, req.params.id],
         (err, results, fields) => {
             if (err) {
                 res.json({ status: 'error', message: err });
@@ -91,7 +115,7 @@ router.put('/update_room/:id', jsonParser, checkUserAuthorization, (req, res, ne
     );
 });
 
-router.delete('/:id', jsonParser,  (req, res, next) => {
+router.delete('/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
       'DELETE FROM rooms WHERE room_id = ?',
       [req.params.id],

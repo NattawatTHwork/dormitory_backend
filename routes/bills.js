@@ -30,9 +30,23 @@ router.post('/', jsonParser, checkUserAuthorization, (req, res, next) => {
     );
 });
 
+router.get('/detail/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+    connection.execute(
+        'SELECT *, bill.status as bill_status, users.status as user_status FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill_id = ?',
+        [req.params.id],
+        (err, results, fields) => {
+            if (err) {
+                res.json({ status: 'error', message: err });
+                return;
+            }
+            res.json({ status: 'success', message: results[0] });
+        }
+    );
+});
+
 router.get('/paid', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
-        'SELECT * FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill.status = ?',
+        'SELECT *, bill.status as bill_status, users.status as user_status FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill.status = ?',
         [1],
         (err, results, fields) => {
             if (err) {
@@ -46,7 +60,7 @@ router.get('/paid', jsonParser, checkUserAuthorization, (req, res, next) => {
 
 router.get('/unpaid', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
-        'SELECT * FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill.status = ?' ,
+        'SELECT *, bill.status as bill_status, users.status as user_status FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill.status = ?' ,
         [0],
         (err, results, fields) => {
             if (err) {
@@ -58,10 +72,24 @@ router.get('/unpaid', jsonParser, checkUserAuthorization, (req, res, next) => {
     );
 });
 
-router.put('/paid/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+router.get('/unpaid/:id', jsonParser,  (req, res, next) => {
+    connection.execute(
+        'SELECT *, bill.status as bill_status, users.status as user_status FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill.status = ? AND bill.user_id = ?' ,
+        [0,req.params.id],
+        (err, results, fields) => {
+            if (err) {
+                res.json({ status: 'error', message: err });
+                return;
+            }
+            res.json({ status: 'success', message: results });
+        }
+    );
+});
+
+router.put('/change_status/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
         'UPDATE bill SET status = ? WHERE bill_id = ?',
-        [0, req.params.id],
+        [req.body.status, req.params.id],
         (err, results, fields) => {
             if (err) {
                 res.json({ status: 'error', message: err });
@@ -72,18 +100,18 @@ router.put('/paid/:id', jsonParser, checkUserAuthorization, (req, res, next) => 
     );
 });
 
-router.put('/unpaid/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
+router.delete('/delete/:id', jsonParser,  (req, res, next) => {
     connection.execute(
-        'UPDATE bill SET status = ? WHERE bill_id = ?',
-        [1, req.params.id],
-        (err, results, fields) => {
-            if (err) {
-                res.json({ status: 'error', message: err });
-                return;
-            }
-            res.json({ status: 'success' });
+      'DELETE FROM bill WHERE bill_id = ?',
+      [req.params.id],
+      (err, results, fields) => {
+        if (err) {
+          res.json({ status: 'error', message: err });
+          return;
         }
+        res.json({ status: 'success' });
+      }
     );
-});
+  });
 
 module.exports = router;
