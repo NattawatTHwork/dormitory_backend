@@ -86,6 +86,20 @@ router.get('/unpaid/:id', jsonParser,  (req, res, next) => {
     );
 });
 
+router.get('/all/:id', jsonParser,  (req, res, next) => {
+    connection.execute(
+        'SELECT *, bill.status as bill_status, users.status as user_status FROM bill INNER JOIN users ON bill.user_id = users.user_id WHERE bill.user_id = ?' ,
+        [req.params.id],
+        (err, results, fields) => {
+            if (err) {
+                res.json({ status: 'error', message: err });
+                return;
+            }
+            res.json({ status: 'success', message: results });
+        }
+    );
+});
+
 router.put('/change_status/:id', jsonParser, checkUserAuthorization, (req, res, next) => {
     connection.execute(
         'UPDATE bill SET status = ? WHERE bill_id = ?',
